@@ -1,52 +1,79 @@
 # Deployment Guide
 
-Manual VPS deployment with Nginx, HTTPS, and dynamic DNS.
+## Overview
 
-## 1. Server Setup
+| Environment | Compose file | Images |
+|-------------|--------------|--------|
+| Local dev | `docker-compose.yml` (repo root) | Built locally |
+| VPS production | `deploy/docker-compose.yml` | Pulled from GHCR |
+
+CI publishes images to GHCR on every push to `main` (`.github/workflows/publish.yml`):
+
+- `ghcr.io/<owner>/<repo>/api:latest`
+- `ghcr.io/<owner>/<repo>/worker:latest`
+- `ghcr.io/<owner>/<repo>/frontend:latest`
+
+## 1. Enable GHCR
+
+After pushing to GitHub, images appear under **Packages** on your repo/profile.
+
+If packages are private, create a GitHub PAT with `read:packages` and log in on the VPS:
 
 ```bash
-# On Ubuntu VPS
-sudo apt update && sudo apt install -y docker.io docker-compose-plugin nginx certbot python3-certbot-nginx
+echo YOUR_PAT | docker login ghcr.io -u YOUR_USERNAME --password-stdin
+```
+
+Make packages public (optional): Package → Package settings → Change visibility.
+
+## 2. VPS Setup
+
+```bash
+sudo apt update && sudo apt install -y docker.io docker-compose-plugin
 sudo usermod -aG docker $USER
+# re-login
 ```
 
-## 2. Clone & Configure
+Point your domain (DuckDNS, No-IP, etc.) to the VPS public IP.
+
+## 3. Deploy (compose only)
+
+Copy **only** the `deploy/` folder to the server:
 
 ```bash
-git clone <your-repo> /opt/job-scheduler
+scp -r deploy/ user@your-vps:/opt/job-scheduler
+ssh user@your-vps
 cd /opt/job-scheduler
+cp .env.example .env
+nano .env   # set GHCR_IMAGE_PREFIX, DOMAIN, CERTBOT_EMAIL
+chmod +x init-letsencrypt.sh
+./init-letsencrypt.sh
+docker compose up -d --scale worker=2
 ```
 
-Set environment in `docker-compose.yml` or `.env`:
-- `NEXT_PUBLIC_API_URL=https://your-domain.duckdns.org/api/v1`
+## 4. HTTPS (Nginx + Certbot in Docker)
 
-## 3. Start Services
+The init script:
+
+1. Renders HTTP-only nginx config (ACME webroot)
+2. Starts app stack + nginx
+3. Runs certbot `certonly` via webroot challenge
+4. Switches nginx to HTTPS config and reloads
+5. Starts certbot renewal container (auto-renew every 12h)
+
+Set `CERTBOT_STAGING=1` in `.env` while testing to avoid rate limits.
+
+## 5. Updates
 
 ```bash
-docker compose up -d --build
+cd /opt/job-scheduler
+docker compose pull
+docker compose up -d
 ```
-
-## 4. Dynamic DNS
-
-Register with [DuckDNS](https://www.duckdns.org/) or No-IP. Point your subdomain to the VPS public IP.
-
-## 5. Nginx + HTTPS
-
-```bash
-sudo cp nginx/nginx.conf /etc/nginx/sites-available/scheduler
-# Edit server_name and SSL paths
-sudo ln -s /etc/nginx/sites-available/scheduler /etc/nginx/sites-enabled/
-sudo certbot --nginx -d your-domain.duckdns.org
-sudo nginx -t && sudo systemctl reload nginx
-```
-
-Update `nginx.conf`:
-- Replace `scheduler.example.com` with your domain
-- API routes proxy to `127.0.0.1:8000`
-- Frontend proxies to `127.0.0.1:3000`
 
 ## 6. Verify
 
-- `https://your-domain.duckdns.org` — UI
-- `https://your-domain.duckdns.org/api/v1/stats` — API
-- `https://your-domain.duckdns.org/docs` — Swagger
+- `https://YOUR_DOMAIN/` — UI
+- `https://YOUR_DOMAIN/api/v1/stats` — API
+- `https://YOUR_DOMAIN/docs` — Swagger
+
+See also `deploy/README.md`.

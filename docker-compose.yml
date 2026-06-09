@@ -1,3 +1,6 @@
+# Local development — builds images from source.
+# Production VPS deploy uses deploy/docker-compose.yml (pulls from GHCR).
+
 services:
   redis:
     image: redis:7-alpine
@@ -35,8 +38,6 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    deploy:
-      replicas: 2
 
   frontend:
     build:

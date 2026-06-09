@@ -117,8 +117,8 @@ Structured JSON via `structlog`:
 
 ## Deployment
 
-1. Docker Compose for local/dev
-2. Manual server deploy with Nginx reverse proxy + Let's Encrypt HTTPS
-3. Dynamic DNS (e.g. DuckDNS, No-IP) for public domain
+- **Local:** `docker-compose.yml` at repo root (builds from source)
+- **Production:** `deploy/docker-compose.yml` pulls images from GHCR
+- **HTTPS:** Dockerized Nginx + Certbot via `deploy/init-letsencrypt.sh`
 
-See `nginx/nginx.conf` for reverse proxy config.
+See `docs/deployment.md` and `deploy/README.md`.

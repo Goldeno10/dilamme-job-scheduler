@@ -6,9 +6,9 @@ Background job scheduler with FastAPI backend, Next.js UI, Redis, independent wo
 
 - **Backend:** FastAPI, Redis, Pydantic, SSE (sse-starlette), structlog, uv
 - **Frontend:** Next.js 15, React 19
-- **Infra:** Docker, Nginx, GitHub Actions CI
+- **Infra:** Docker, GHCR, Nginx + Certbot, GitHub Actions CI/CD
 
-## Quick Start (Docker)
+## Quick Start (Local Docker)
 
 ```bash
 docker compose up --build
@@ -17,6 +17,21 @@ docker compose up --build
 - API: http://localhost:8000
 - Swagger: http://localhost:8000/docs
 - UI: http://localhost:3000
+
+## Production Deploy (VPS)
+
+Images are built in CI and pushed to **GHCR** on push to `main`.  
+On the VPS you only need the `deploy/` folder — no source code.
+
+```bash
+# After CI publishes images, on your VPS:
+cd /opt/job-scheduler   # copy deploy/ here
+cp .env.example .env    # set GHCR_IMAGE_PREFIX, DOMAIN, CERTBOT_EMAIL
+./init-letsencrypt.sh   # nginx + certbot HTTPS setup
+docker compose up -d --scale worker=2
+```
+
+See [deploy/README.md](deploy/README.md) and [docs/deployment.md](docs/deployment.md).
 
 ## Local Development
 

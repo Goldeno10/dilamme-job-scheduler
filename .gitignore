@@ -16,6 +16,8 @@ out/
 # Env
 .env
 .env.local
+deploy/.env
+deploy/nginx/conf.d/app.conf
 
 # IDE
 .idea/
