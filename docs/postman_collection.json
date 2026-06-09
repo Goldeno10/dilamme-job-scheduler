@@ -1,0 +1,59 @@
+{
+  "info": {
+    "name": "Job Scheduler API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000/api/v1" }
+  ],
+  "item": [
+    {
+      "name": "Create Job",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/jobs",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"send_email\",\n  \"priority\": 1,\n  \"payload\": {\n    \"to\": \"test@gmail.com\",\n    \"subject\": \"Welcome\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "List Jobs",
+      "request": { "method": "GET", "url": "{{baseUrl}}/jobs" }
+    },
+    {
+      "name": "Get Stats",
+      "request": { "method": "GET", "url": "{{baseUrl}}/stats" }
+    },
+    {
+      "name": "Cancel Job",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/jobs/{{jobId}}" }
+    },
+    {
+      "name": "List DLQ",
+      "request": { "method": "GET", "url": "{{baseUrl}}/dlq" }
+    },
+    {
+      "name": "Retry DLQ Job",
+      "request": { "method": "POST", "url": "{{baseUrl}}/dlq/{{jobId}}/retry" }
+    },
+    {
+      "name": "Report Pipeline Workflow",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/workflows/report-pipeline",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email_to\": \"test@gmail.com\",\n  \"email_subject\": \"Your Report is Ready\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Benchmark Schedulers",
+      "request": { "method": "GET", "url": "{{baseUrl}}/benchmark/run?n_jobs=500" }
+    }
+  ]
+}
