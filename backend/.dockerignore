@@ -4,5 +4,6 @@ __pycache__
 .pytest_cache
 .ruff_cache
 tests
-*.md
 .env
+# Keep README.md — required by hatchling (pyproject.toml readme field)
+!README.md

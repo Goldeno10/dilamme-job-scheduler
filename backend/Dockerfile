@@ -4,10 +4,10 @@ WORKDIR /app
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-COPY pyproject.toml .
+COPY pyproject.toml README.md ./
 COPY app ./app
 
-RUN uv pip install --system -e .
+RUN uv pip install --system .
 
 EXPOSE 8000
 
