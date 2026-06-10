@@ -1,5 +1,5 @@
 import random
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from app.config import settings
 from app.handlers import HANDLERS
@@ -13,6 +13,7 @@ from app.models.job import (
 )
 from app.scheduler.factory import get_scheduler
 from app.services import events, job_store
+from app.utils.time import utc_now
 
 logger = get_logger(__name__)
 
@@ -55,7 +56,7 @@ async def cancel_job(job_id: str) -> Job:
 
     previous_status = job.status
     job.status = JobStatus.CANCELLED
-    job.updated_at = datetime.utcnow()
+    job.updated_at = utc_now()
     await job_store.save_job(job)
 
     scheduler = get_scheduler()
@@ -81,7 +82,7 @@ async def retry_from_dlq(job_id: str) -> Job:
     job.error = None
     job.in_dlq = False
     job.queued_at = None
-    job.updated_at = datetime.utcnow()
+    job.updated_at = utc_now()
     await job_store.save_job(job)
 
     scheduler = get_scheduler()
@@ -103,10 +104,10 @@ async def _schedule_retry(job: Job, error: str) -> None:
     job.retry_count += 1
     job.error = error
     job.status = JobStatus.PENDING
-    job.updated_at = datetime.utcnow()
+    job.updated_at = utc_now()
 
     delay = _backoff_seconds(job.retry_count)
-    job.scheduled_at = datetime.utcnow() + timedelta(seconds=delay)
+    job.scheduled_at = utc_now() + timedelta(seconds=delay)
     await job_store.save_job(job)
 
     scheduler = get_scheduler()
@@ -126,8 +127,8 @@ async def _move_to_dlq(job: Job, error: str) -> None:
     job.status = JobStatus.FAILED
     job.error = error
     job.in_dlq = True
-    job.completed_at = datetime.utcnow()
-    job.updated_at = datetime.utcnow()
+    job.completed_at = utc_now()
+    job.updated_at = utc_now()
     await job_store.save_job(job)
 
     await events.publish_event("job_failed", job.model_dump(mode="json"))
@@ -168,7 +169,7 @@ async def _schedule_recurring(job: Job) -> None:
         priority=job.priority,
         interval=job.interval,
         depends_on=job.depends_on,
-        scheduled_at=datetime.utcnow() + timedelta(seconds=seconds),
+        scheduled_at=utc_now() + timedelta(seconds=seconds),
     )
     await job_store.save_job(new_job)
     scheduler = get_scheduler()
@@ -196,8 +197,8 @@ async def process_job(job: Job) -> None:
         return
 
     job.status = JobStatus.PROCESSING
-    job.started_at = datetime.utcnow()
-    job.updated_at = datetime.utcnow()
+    job.started_at = utc_now()
+    job.updated_at = utc_now()
     await job_store.save_job(job)
     await events.publish_event("job_started", job.model_dump(mode="json"))
     logger.info("job_started", job_id=job.id, type=job.type)
@@ -216,8 +217,8 @@ async def process_job(job: Job) -> None:
             return
 
         job.status = JobStatus.COMPLETED
-        job.completed_at = datetime.utcnow()
-        job.updated_at = datetime.utcnow()
+        job.completed_at = utc_now()
+        job.updated_at = utc_now()
         job.payload["_result"] = result
         await job_store.save_job(job)
 

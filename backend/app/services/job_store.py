@@ -1,7 +1,6 @@
-from datetime import datetime
-
 from app.db.redis_client import get_redis
 from app.models.job import Job, JobStatus
+from app.utils.time import utc_now
 
 JOBS_INDEX = "jobs:index"
 JOB_KEY = "job:{id}"
@@ -15,7 +14,7 @@ def _job_key(job_id: str) -> str:
 
 async def save_job(job: Job) -> Job:
     redis = await get_redis()
-    job.updated_at = datetime.utcnow()
+    job.updated_at = utc_now()
     pipe = redis.pipeline()
     pipe.set(_job_key(job.id), job.model_dump_json())
     pipe.sadd(JOBS_INDEX, job.id)

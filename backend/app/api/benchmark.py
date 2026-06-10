@@ -5,7 +5,7 @@ Run: uv run python -m app.api.benchmark
 
 import asyncio
 import time
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -15,6 +15,7 @@ from app.logging_config import setup_logging
 from app.models.job import Job, Priority
 from app.scheduler.heap_scheduler import HeapScheduler
 from app.scheduler.timing_wheel import TimingWheelScheduler
+from app.utils.time import utc_now
 
 router = APIRouter()
 
@@ -57,7 +58,7 @@ async def _benchmark_scheduler(name: str, scheduler, n_jobs: int) -> dict:
             type="send_email",
             payload={"to": f"user{i}@test.com", "subject": "Bench"},
             priority=Priority((i % 3) + 1),
-            scheduled_at=datetime.utcnow() + timedelta(seconds=i % 10) if i % 5 == 0 else None,
+            scheduled_at=utc_now() + timedelta(seconds=i % 10) if i % 5 == 0 else None,
         )
         for i in range(n_jobs)
     ]

@@ -20,6 +20,7 @@ from app.models.job import Job, JobStatus
 from app.scheduler.base import BaseScheduler
 from app.scheduler.heap_scheduler import LOCK_PREFIX
 from app.services import job_store
+from app.utils.time import utc_now
 
 logger = get_logger(__name__)
 
@@ -54,7 +55,7 @@ class TimingWheelScheduler(BaseScheduler):
 
     async def enqueue(self, job: Job) -> None:
         redis = await get_redis()
-        now = datetime.utcnow()
+        now = utc_now()
 
         if job.scheduled_at and job.scheduled_at > now:
             target_slot = self._slot_for_time(job.scheduled_at)
@@ -128,7 +129,7 @@ class TimingWheelScheduler(BaseScheduler):
 
     async def promote_due_scheduled(self, now: datetime | None = None) -> int:
         redis = await get_redis()
-        now = now or datetime.utcnow()
+        now = now or utc_now()
         due = await redis.zrangebyscore(WHEEL_SCHEDULED, "-inf", now.timestamp())
         count = 0
         for job_id in due:

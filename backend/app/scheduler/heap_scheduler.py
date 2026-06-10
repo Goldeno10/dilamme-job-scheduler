@@ -17,6 +17,7 @@ from app.logging_config import get_logger
 from app.models.job import Job, JobStatus
 from app.scheduler.base import BaseScheduler
 from app.services import job_store
+from app.utils.time import utc_now
 
 logger = get_logger(__name__)
 
@@ -28,7 +29,7 @@ LOCK_PREFIX = "lock:job:"
 class HeapScheduler(BaseScheduler):
     async def enqueue(self, job: Job) -> None:
         redis = await get_redis()
-        now = datetime.utcnow()
+        now = utc_now()
 
         if job.scheduled_at and job.scheduled_at > now:
             await redis.zadd(SCHEDULED_SET, {job.id: job.scheduled_at.timestamp()})
@@ -66,7 +67,7 @@ class HeapScheduler(BaseScheduler):
 
             if job.depends_on and not await job_store.dependencies_met(job):
                 # Re-enqueue with updated score (may have aged)
-                job.queued_at = datetime.utcnow()
+                job.queued_at = utc_now()
                 score = self.compute_score(job)
                 await redis.zadd(HEAP_QUEUE, {job_id: score})
                 continue
@@ -91,7 +92,7 @@ class HeapScheduler(BaseScheduler):
 
     async def promote_due_scheduled(self, now: datetime | None = None) -> int:
         redis = await get_redis()
-        now = now or datetime.utcnow()
+        now = now or utc_now()
         due = await redis.zrangebyscore(SCHEDULED_SET, "-inf", now.timestamp())
         count = 0
         for job_id in due:

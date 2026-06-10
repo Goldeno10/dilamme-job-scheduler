@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 from app.models.job import Job
+from app.utils.time import utc_now
 
 
 class BaseScheduler(ABC):
@@ -40,7 +41,7 @@ class BaseScheduler(ABC):
         2. Scheduled time
         3. Creation time
         """
-        now = now or datetime.utcnow()
+        now = now or utc_now()
         eff_priority = job.effective_priority(now)
         scheduled_ts = job.scheduled_at.timestamp() if job.scheduled_at else 0.0
         created_ts = job.created_at.timestamp()

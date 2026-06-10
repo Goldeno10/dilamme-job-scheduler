@@ -5,6 +5,8 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.utils.time import ensure_utc, utc_now
+
 
 class Priority(IntEnum):
     HIGH = 1
@@ -46,6 +48,11 @@ class JobCreate(BaseModel):
     def validate_depends_on(cls, v: list[str]) -> list[str]:
         return list(dict.fromkeys(v))
 
+    @field_validator("scheduled_at")
+    @classmethod
+    def normalize_scheduled_at(cls, v: datetime | None) -> datetime | None:
+        return ensure_utc(v)
+
 
 class Job(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
@@ -58,22 +65,28 @@ class Job(BaseModel):
     interval: RecurringInterval | None = None
     depends_on: list[str] = Field(default_factory=list)
     error: str | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
     started_at: datetime | None = None
     completed_at: datetime | None = None
     in_dlq: bool = False
     queued_at: datetime | None = None
 
+    @field_validator("scheduled_at", "queued_at", "started_at", "completed_at", "created_at", "updated_at")
+    @classmethod
+    def normalize_datetimes(cls, v: datetime | None) -> datetime | None:
+        return ensure_utc(v)
+
     def effective_priority(self, now: datetime | None = None) -> int:
         """Starvation prevention: waiting jobs gain priority over time."""
         from app.config import settings
 
-        now = now or datetime.utcnow()
+        now = now or utc_now()
         base = int(self.priority)
         if self.queued_at is None:
             return base
-        wait_seconds = (now - self.queued_at).total_seconds()
+        queued_at = ensure_utc(self.queued_at)
+        wait_seconds = (now - queued_at).total_seconds()
         boosts = int(wait_seconds // settings.aging_interval_seconds) * settings.aging_boost_levels
         return max(Priority.HIGH, base - boosts)
 
