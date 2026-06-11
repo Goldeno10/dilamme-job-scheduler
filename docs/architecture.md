@@ -4,20 +4,9 @@
 
 A distributed background job scheduler built for Dilamme (HNG Stage 9). Jobs are created via REST API, queued in Redis-backed schedulers, processed by independent workers, and tracked in real time via SSE.
 
-```
-┌─────────────┐     REST/SSE      ┌──────────────┐
-│  Next.js UI │ ◄──────────────► │   FastAPI    │
-└─────────────┘                   └──────┬───────┘
-                                         │
-                    ┌────────────────────┼────────────────────┐
-                    │                    │                    │
-               ┌────▼────┐        ┌──────▼──────┐      ┌─────▼─────┐
-               │  Redis  │◄──────►│   Worker 1  │      │ Worker 2  │
-               │ (store, │        └─────────────┘      └───────────┘
-               │  queue, │
-               │ pubsub) │
-               └─────────┘
-```
+![System architecture](diagrams/system-architecture.png)
+
+*Source: [`diagrams/system-architecture.mmd`](diagrams/system-architecture.mmd)*
 
 ## Components
 

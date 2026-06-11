@@ -3,6 +3,12 @@ name: Publish to GHCR
 on:
   push:
     branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "docker-compose.yml"
+      - "deploy/docker-compose.yml"
+      - ".github/workflows/publish.yml"
   workflow_dispatch:
 
 env:

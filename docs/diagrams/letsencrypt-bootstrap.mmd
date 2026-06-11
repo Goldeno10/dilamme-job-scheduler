@@ -1,0 +1,26 @@
+sequenceDiagram
+    autonumber
+    actor Admin
+    participant Script as init-letsencrypt.sh
+    participant Compose as Docker Compose
+    participant Nginx
+    participant Stack as api / worker / frontend / redis
+    participant Certbot
+    participant LE as Let's Encrypt
+
+    Admin->>Script: ./init-letsencrypt.sh
+    Script->>Nginx: Render HTTP-only config
+    Script->>Compose: up -d redis api worker frontend nginx
+    Compose->>Stack: Start containers
+
+    Script->>Certbot: certonly --webroot -d DOMAIN
+    Certbot->>Nginx: Serve /.well-known/acme-challenge/
+    Nginx->>LE: HTTP-01 challenge
+    LE-->>Certbot: Issue certificate
+
+    Script->>Nginx: Render HTTPS config
+    Script->>Nginx: nginx -s reload
+    Script->>Compose: up -d certbot
+    Note over Certbot: Renews every 12h
+
+    Admin->>Nginx: https://elgenius.duckdns.org/

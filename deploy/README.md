@@ -9,19 +9,38 @@ Images are pulled from GitHub Container Registry (GHCR), built by CI on push to 
 - VPS with Docker and Docker Compose v2
 - Domain pointing to the VPS public IP (DuckDNS, No-IP, etc.)
 - GHCR packages published (push to `main` triggers `.github/workflows/publish.yml`)
-- If packages are **private**, log in on the VPS:
+- `GHCR_IMAGE_PREFIX` must match your GitHub repo: `ghcr.io/<owner>/<repo-name>`
+- If packages are **private**, log in on the VPS before pulling:
 
 ```bash
 echo YOUR_GITHUB_PAT | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
 ```
 
+PAT needs the `read:packages` scope. Create one at GitHub → Settings → Developer settings → Personal access tokens.
+
+**Or make packages public:** GitHub → Your profile → Packages → select package → Package settings → Change visibility → Public.
+
+### GHCR pull denied?
+
+1. Fix image prefix in `.env` (must match repo name, e.g. `dilamme-job-scheduler` not `hng14-stage9-job-scheduler`)
+2. Run `docker login ghcr.io` on the VPS (see above)
+3. Confirm images exist: GitHub repo → Packages (right sidebar)
+4. Test pull: `docker pull ghcr.io/goldeno10/dilamme-job-scheduler/api:latest`
+
 ## Quick Deploy
 
 ```bash
-# 1. Copy deploy/ folder to VPS
-scp -r deploy/ user@your-vps:/opt/job-scheduler
+# 1. Create target dir on VPS (/opt requires sudo)
+ssh -i your-key.pem ubuntu@YOUR_VPS_IP \
+  "sudo mkdir -p /opt/job-scheduler && sudo chown ubuntu:ubuntu /opt/job-scheduler"
 
-# 2. On the VPS
+# 2. Copy deploy/ folder to VPS
+scp -i your-key.pem -r deploy/. ubuntu@YOUR_VPS_IP:/opt/job-scheduler/
+
+# Alternative: copy to home directory (no sudo needed)
+# scp -i your-key.pem -r deploy/ ubuntu@YOUR_VPS_IP:~/job-scheduler
+
+# 3. On the VPS
 cd /opt/job-scheduler
 cp .env.example .env
 # Edit .env — set GHCR_IMAGE_PREFIX, DOMAIN, CERTBOT_EMAIL

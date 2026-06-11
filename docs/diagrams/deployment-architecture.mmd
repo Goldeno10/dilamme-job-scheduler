@@ -1,0 +1,36 @@
+flowchart TB
+    Internet([Internet / Users])
+
+    subgraph VPS["VPS — deploy/docker-compose.yml"]
+        direction TB
+        Nginx["Nginx<br/>:80 / :443"]
+        Frontend["Frontend<br/>:3000"]
+        API["API<br/>:8000"]
+        Redis[("Redis<br/>:6379")]
+        Worker["Worker"]
+        Certbot["Certbot<br/>auto-renew"]
+
+        Internet --> Nginx
+        Nginx -->|"/"| Frontend
+        Nginx -->|"/api/* /docs"| API
+        API --> Redis
+        Worker --> Redis
+        Certbot -.->|TLS certs| Nginx
+    end
+
+    subgraph GHCR["GitHub Container Registry"]
+        ImgAPI["api:latest"]
+        ImgWorker["worker:latest"]
+        ImgFrontend["frontend:latest"]
+    end
+
+    subgraph CI["GitHub Actions — push to main"]
+        Publish["publish.yml"]
+        Publish --> ImgAPI
+        Publish --> ImgWorker
+        Publish --> ImgFrontend
+    end
+
+    ImgAPI -.->|docker pull| API
+    ImgWorker -.->|docker pull| Worker
+    ImgFrontend -.->|docker pull| Frontend

@@ -1,0 +1,19 @@
+flowchart LR
+    Dev[Developer] -->|git push| Main[main branch]
+
+    Main --> CI[ci.yml]
+    Main --> Publish[publish.yml]
+
+    CI --> Lint[Ruff + Pytest]
+    CI --> BuildFE[Next.js build]
+    CI --> DockerBuild[Docker compose build]
+
+    Publish --> BuildAPI[Build api image]
+    Publish --> BuildWorker[Build worker image]
+    Publish --> BuildFrontend[Build frontend image]
+
+    BuildAPI --> GHCR[(GHCR)]
+    BuildWorker --> GHCR
+    BuildFrontend --> GHCR
+
+    GHCR -->|docker compose pull| VPS[VPS production]

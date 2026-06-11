@@ -1,0 +1,5 @@
+flowchart LR
+    UI["Next.js UI"] <-->|REST + SSE| API["FastAPI API"]
+    API <--> Redis[("Redis<br/>store · queue · pubsub")]
+    W1["Worker 1"] <--> Redis
+    W2["Worker 2"] <--> Redis

@@ -1,0 +1,23 @@
+flowchart TD
+    Start([Start deployment]) --> Push[Push code to main]
+    Push --> WaitCI[Wait for Publish to GHCR workflow]
+    WaitCI --> VerifyPkgs[Verify packages on GitHub]
+
+    VerifyPkgs --> Scp[scp deploy/ folder to VPS]
+    Scp --> Env[Copy .env.example to .env]
+    Env --> Config[Set GHCR_IMAGE_PREFIX, DOMAIN, CERTBOT_EMAIL]
+
+    Config --> Login{Packages private?}
+    Login -->|Yes| DockerLogin[docker login ghcr.io]
+    Login -->|No| PullTest[docker pull test images]
+    DockerLogin --> PullTest
+
+    PullTest --> Init[Run ./init-letsencrypt.sh]
+    Init --> Scale[Optional: scale worker=2]
+    Scale --> Verify[Verify HTTPS, API, UI]
+    Verify --> Done([Deployment complete])
+
+    WaitCI -->|CI failed| FixCI[Fix build and push again]
+    PullTest -->|denied / not found| FixPrefix[Fix .env prefix or GHCR auth]
+    FixCI --> Push
+    FixPrefix --> Config
