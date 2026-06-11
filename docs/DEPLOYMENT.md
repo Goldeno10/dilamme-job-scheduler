@@ -335,6 +335,32 @@ Then `docker compose pull && docker compose up -d`.
 
 ---
 
+## Reset Redis (start fresh)
+
+Wipes all job data so the dashboard shows zero jobs. Run on the VPS from `deploy/`:
+
+```bash
+cd /opt/job-scheduler
+chmod +x reset-redis.sh
+./reset-redis.sh flush    # clear keys, containers keep running
+./reset-redis.sh full     # stop stack, delete redis volume, restart
+```
+
+Or directly:
+
+```bash
+docker compose exec redis redis-cli FLUSHDB
+```
+
+| Method | What it does |
+|--------|----------------|
+| `flush` | `FLUSHDB` — removes jobs, queues, DLQ, locks, pub/sub state |
+| `full` | `docker compose down` + remove `redis_data` volume + `up -d` |
+
+**Do not** call `GET /api/v1/benchmark/run` on production unless you want to wipe Redis — the benchmark flushes the database as part of its test.
+
+---
+
 ## Troubleshooting
 
 ### `scp: stat remote: No such file or directory`

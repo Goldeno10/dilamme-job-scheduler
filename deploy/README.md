@@ -76,3 +76,26 @@ docker compose up -d
 - `https://YOUR_DOMAIN/` — UI
 - `https://YOUR_DOMAIN/api/v1/stats` — API
 - `https://YOUR_DOMAIN/docs` — Swagger
+
+## Reset Redis (start fresh)
+
+Clears all jobs, queues, DLQ entries, and locks. Use before a clean demo or after running the benchmark (which also flushes Redis).
+
+```bash
+cd /opt/job-scheduler
+chmod +x reset-redis.sh
+
+# Option 1 — flush keys only (quick, stack keeps running)
+./reset-redis.sh flush
+
+# Option 2 — delete Redis volume and restart entire stack
+./reset-redis.sh full
+```
+
+One-liner without the script:
+
+```bash
+docker compose exec redis redis-cli FLUSHDB
+```
+
+**Warning:** Do not run `/api/v1/benchmark/run` on production unless you intend to wipe Redis — the benchmark calls `FLUSHDB` internally.
