@@ -32,6 +32,7 @@ class HeapScheduler(BaseScheduler):
         now = utc_now()
 
         if job.scheduled_at and job.scheduled_at > now:
+            await job_store.save_job(job)
             await redis.zadd(SCHEDULED_SET, {job.id: job.scheduled_at.timestamp()})
             logger.info("job_scheduled", job_id=job.id, scheduled_at=job.scheduled_at.isoformat())
             return

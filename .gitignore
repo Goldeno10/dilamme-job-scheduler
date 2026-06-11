@@ -29,3 +29,6 @@ deploy/nginx/conf.d/app.conf
 
 # Docker
 *.log
+
+# Local presentation notes (not for repo)
+PRESENTATION_GUIDE.md

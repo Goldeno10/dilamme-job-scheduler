@@ -15,6 +15,7 @@ from app.logging_config import setup_logging
 from app.models.job import Job, Priority
 from app.scheduler.heap_scheduler import HeapScheduler
 from app.scheduler.timing_wheel import TimingWheelScheduler
+from app.services import job_store
 from app.utils.time import utc_now
 
 router = APIRouter()
@@ -63,19 +64,29 @@ async def _benchmark_scheduler(name: str, scheduler, n_jobs: int) -> dict:
         for i in range(n_jobs)
     ]
 
+    # Persist jobs first (same as create_job in production)
+    for job in jobs:
+        await job_store.save_job(job)
+
     # Enqueue benchmark
     start = time.perf_counter()
     for job in jobs:
         await scheduler.enqueue(job)
     enqueue_time = time.perf_counter() - start
 
-    # Dequeue benchmark
+    # Dequeue benchmark — wait up to 15s for future-scheduled jobs to become due
     start = time.perf_counter()
     dequeued = 0
+    deadline = time.perf_counter() + 15.0
     while dequeued < n_jobs:
+        if time.perf_counter() > deadline:
+            raise TimeoutError(
+                f"Benchmark stuck: dequeued {dequeued}/{n_jobs}. "
+                "Scheduled jobs may not have been promoted."
+            )
         job = await scheduler.dequeue()
         if job is None:
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.05)
             continue
         dequeued += 1
         if hasattr(scheduler, "release_lock"):

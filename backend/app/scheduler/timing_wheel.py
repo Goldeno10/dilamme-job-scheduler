@@ -58,6 +58,7 @@ class TimingWheelScheduler(BaseScheduler):
         now = utc_now()
 
         if job.scheduled_at and job.scheduled_at > now:
+            await job_store.save_job(job)
             target_slot = self._slot_for_time(job.scheduled_at)
             score = job.scheduled_at.timestamp()
             await redis.zadd(WHEEL_SCHEDULED, {job.id: score})
